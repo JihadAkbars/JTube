@@ -1,9 +1,16 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { JTubeInput, JTubeOutput } from "../types";
 
 export const generateSEOContent = async (input: JTubeInput): Promise<JTubeOutput> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Use the API key from environment variables. 
+  // Vite replaces process.env.API_KEY during the build process.
+  const apiKey = process.env.API_KEY;
+
+  if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+    throw new Error("API Key is missing. Please ensure you have set 'API_KEY' in Vercel Environment Variables and triggered a REDEPLOY of your project.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
     You are an AI engine for a web application called "JTube".
@@ -40,43 +47,51 @@ export const generateSEOContent = async (input: JTubeInput): Promise<JTubeOutput
     [tag1, tag2, tag3...]
   `;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    config: {
-      tools: [{ googleSearch: {} }],
-      temperature: 0.7,
-    },
-  });
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+        temperature: 0.7,
+      },
+    });
 
-  const text = response.text || '';
-  
-  // Parse Titles
-  const titleMatch = text.match(/AI-Generated YouTube Titles:\s*([\s\S]*?)(?=YouTube Description|$)/i);
-  const titles = titleMatch 
-    ? titleMatch[1].trim().split('\n').map(t => t.replace(/^\d+\.\s*/, '').trim()).filter(Boolean)
-    : [];
+    const text = response.text || '';
+    
+    // Parse Titles
+    const titleMatch = text.match(/AI-Generated YouTube Titles:\s*([\s\S]*?)(?=YouTube Description|$)/i);
+    const titles = titleMatch 
+      ? titleMatch[1].trim().split('\n').map(t => t.replace(/^\d+\.\s*/, '').trim()).filter(Boolean)
+      : [];
 
-  // Parse Description
-  const descMatch = text.match(/YouTube Description \(Ready to Copy\):\s*([\s\S]*?)(?=SEO Tags|$)/i);
-  const description = descMatch ? descMatch[1].trim() : '';
+    // Parse Description
+    const descMatch = text.match(/YouTube Description \(Ready to Copy\):\s*([\s\S]*?)(?=SEO Tags|$)/i);
+    const description = descMatch ? descMatch[1].trim() : '';
 
-  // Parse Tags
-  const tagsMatch = text.match(/SEO Tags:\s*([\s\S]*?)$/i);
-  const tags = tagsMatch ? tagsMatch[1].trim() : '';
+    // Parse Tags
+    const tagsMatch = text.match(/SEO Tags:\s*([\s\S]*?)$/i);
+    const tags = tagsMatch ? tagsMatch[1].trim() : '';
 
-  // Extract Grounding Sources
-  const groundingSources = response.candidates?.[0]?.groundingMetadata?.groundingChunks
-    ?.map(chunk => ({
-      title: chunk.web?.title || 'Source',
-      uri: chunk.web?.uri || ''
-    }))
-    .filter(source => source.uri) || [];
+    // Extract Grounding Sources
+    const groundingSources = response.candidates?.[0]?.groundingMetadata?.groundingChunks
+      ?.map(chunk => ({
+        title: chunk.web?.title || 'Source',
+        uri: chunk.web?.uri || ''
+      }))
+      .filter(source => source.uri) || [];
 
-  return {
-    titles,
-    description,
-    tags,
-    groundingSources,
-  };
+    return {
+      titles,
+      description,
+      tags,
+      groundingSources,
+    };
+  } catch (error: any) {
+    console.error("Gemini API Error:", error);
+    if (error.message?.includes("403") || error.message?.includes("401")) {
+      throw new Error("Invalid API Key or permission denied. Check if your API Key is correct in your hosting environment.");
+    }
+    throw new Error(error.message || "Failed to generate content. Please verify your internet connection or API limits.");
+  }
 };

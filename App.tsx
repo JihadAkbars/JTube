@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { JTubeInput, JTubeOutput } from './types';
 import { generateSEOContent } from './services/geminiService';
@@ -22,7 +21,7 @@ const App: React.FC = () => {
       }, 100);
     } catch (err: any) {
       console.error(err);
-      setError('Failed to generate content. Please check your API key and try again.');
+      setError(err.message || 'Failed to generate content. Please check your API key and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -63,9 +62,9 @@ const App: React.FC = () => {
           <InputSection onGenerate={handleGenerate} isLoading={isLoading} />
           
           {error && (
-            <div className="mt-4 p-4 bg-red-900/30 border border-red-500/50 rounded-lg text-red-200 text-sm flex items-center gap-2">
-              <i className="fas fa-exclamation-circle"></i>
-              {error}
+            <div className="mt-4 p-4 bg-red-900/30 border border-red-500/50 rounded-lg text-red-200 text-sm flex items-start gap-2">
+              <i className="fas fa-exclamation-circle mt-1"></i>
+              <span>{error}</span>
             </div>
           )}
 
@@ -155,7 +154,6 @@ const App: React.FC = () => {
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="mt-20 py-12 border-t border-gray-800 flex flex-col items-center gap-4 text-center">
         <div className="flex items-center gap-6 mb-4">
           <a href="https://saweria.co/DragonFroze" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#faad14] transition-colors text-sm flex items-center gap-2">

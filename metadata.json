@@ -1,0 +1,5 @@
+{
+  "name": "JTube AI Engine",
+  "description": "Generate AI-powered, SEO-optimized YouTube titles, descriptions, and tags for gaming content based on real-time trends using Gemini 3 Flash.",
+  "requestFramePermissions": []
+}
